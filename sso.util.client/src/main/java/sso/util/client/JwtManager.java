@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -12,31 +14,32 @@ import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import sso.util.client.models.UserData;
 
 public class JwtManager {
-	public String ssoBaseUrl = ApplicationProperties.getValue("sso.url");
-	public String ssoSecretKey = ApplicationProperties.getValue("sso.secret");
-	public String ssoCookieKey = ApplicationProperties.getValue("sso.cookiekey");
-	public String ssoCookieTime = ApplicationProperties.getValue("sso.cookietime");
+	public String ssoBaseUrl = ApplicationProperties.getValue("ssoUrl");
+	public String ssoSecretKey = ApplicationProperties.getValue("ssoSecret");
+	public String ssoCookieKey = ApplicationProperties.getValue("ssoCookieKey");
+	public String ssoCookieTime = ApplicationProperties.getValue("ssoCookieTime");
 
-	public String messageUrl = ApplicationProperties.getValue("messageurl");
-	
-	public String fileUrl = ApplicationProperties.getValue("fileurl");
+	public String messageUrl = ApplicationProperties.getValue("messageUrl");
+
+	public String fileUrl = ApplicationProperties.getValue("fileUrl");
 
 	public UserData ParseToken(String authorization) throws JWTVerificationException {
 		Algorithm algorithm = Algorithm.HMAC256(Base64.getDecoder().decode(ssoSecretKey));
 		JWTVerifier verifier = JWT.require(algorithm).acceptExpiresAt(5).build();
 		DecodedJWT jwt = verifier.verify(authorization);
-		var maps = jwt.getClaims();
+		Map<String, Claim> maps = jwt.getClaims();
 		UserData userData = new UserData();
 		userData.setExtra(new HashMap<String, String>());
-		for (var entry : maps.entrySet()) {
-			var key = entry.getKey();
-			var value = entry.getValue().asString();
-			var list = new ArrayList<String>(Arrays.asList("aud", "nbf", "iss", "exp", "iat"));
+		for (Entry<String, Claim> entry : maps.entrySet()) {
+			String key = entry.getKey();
+			String value = entry.getValue().asString();
+			ArrayList<String> list = new ArrayList<String>(Arrays.asList("aud", "nbf", "iss", "exp", "iat"));
 			if (list.contains(key))
 				continue;
 			if (key.equals("unique_name")) {
@@ -61,7 +64,7 @@ public class JwtManager {
 
 	public String ModifyTokenLang(String token, String lang) {
 		DecodedJWT decodedJWT = JWT.decode(token);
-		var claims = decodedJWT.getClaims();
+		Map<String, Claim> claims = decodedJWT.getClaims();
 		JWTCreator.Builder builder = JWT.create();
 		for (String key : claims.keySet()) {
 			if (key.equals("lang")) {

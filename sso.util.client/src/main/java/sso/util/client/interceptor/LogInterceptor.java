@@ -3,27 +3,22 @@ package sso.util.client.interceptor;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
 import sso.util.client.ApplicationProperties;
-import sso.util.client.WebClientRequestHelper;
+import sso.util.client.HttpClientRequestHelper;
 import sso.util.client.JsonSerializerHelper;
 import sso.util.client.JwtManager;
 import sso.util.client.StringExtention;
 import sso.util.client.models.ErrorCode;
 import sso.util.client.models.LogModel;
 import sso.util.client.models.ResponseModel;
-import sso.util.client.models.ServiceModel;
 import sso.util.client.models.UserData;
 
 public class LogInterceptor implements HandlerInterceptor {
 	JwtManager jwtManager = new JwtManager();
-	Logger logger = LoggerFactory.getLogger(LogInterceptor.class);
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -36,20 +31,20 @@ public class LogInterceptor implements HandlerInterceptor {
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
 			ModelAndView modelAndView) throws Exception {
-		int step = (int) request.getAttribute("step");
+		int step = Integer.parseInt(request.getAttribute("step").toString());
 		request.setAttribute("step", step + 1);
 	}
 
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
 			Exception exception) throws Exception {
-		int step = (int) request.getAttribute("step");
+		int step = Integer.parseInt(request.getAttribute("step").toString());
 		request.removeAttribute("step");
 		if (!(handler instanceof HandlerMethod))
 			return;
 		HandlerMethod handlerMethod = (HandlerMethod) handler;
-		var controllerAnnotation = handlerMethod.getBeanType().getAnnotation(NoneLogRecord.class);
-		var methodAnnotation = handlerMethod.getMethod().getAnnotation(NoneLogRecord.class);
+		NoneLogRecord controllerAnnotation = handlerMethod.getBeanType().getAnnotation(NoneLogRecord.class);
+		NoneLogRecord methodAnnotation = handlerMethod.getMethod().getAnnotation(NoneLogRecord.class);
 		boolean logRecord = true;
 		if (controllerAnnotation != null || methodAnnotation != null)
 			logRecord = false;
@@ -66,14 +61,18 @@ public class LogInterceptor implements HandlerInterceptor {
 		String queryString = request.getQueryString();
 		String host = request.getRemoteHost().toString();
 		String agent = request.getHeader("USER-AGENT");
-		long time = System.currentTimeMillis() - (long) request.getAttribute("log_time_start");
+		long time = System.currentTimeMillis() - Long.parseLong(request.getAttribute("log_time_start").toString());
 		String userId = "", userName = "", from = "";
 		String authorization = jwtManager.GetAuthorization(request);
 		if (!StringExtention.IsNullOrEmpty(authorization)) {
-			UserData userData = jwtManager.ParseToken(authorization);
-			userId = userData.getUserId();
-			userName = userData.getUserName();
-			from = userData.getFrom();
+			try {
+				UserData userData = jwtManager.ParseToken(authorization);
+				userId = userData.getUserId();
+				userName = userData.getUserName();
+				from = userData.getFrom();
+			} catch (Exception ex) {
+				System.out.println(ex.getMessage());
+			}
 		}
 		boolean exp = false;
 		if (exception != null) {
@@ -89,19 +88,19 @@ public class LogInterceptor implements HandlerInterceptor {
 		response.setContentType("application/json");
 		if (StringExtention.IsNullOrEmpty(jwtManager.messageUrl)) {
 			String respString = JsonSerializerHelper
-					.Serialize(new ResponseModel<String>(ErrorCode.messageBaseUrl_not_config, ""));
+					.Serialize(new ResponseModel<String>(ErrorCode.messageUrl_not_config, ""));
 			response.getWriter().println(respString);
 			return false;
 		}
 		if (StringExtention.IsNullOrEmpty(jwtManager.ssoSecretKey)) {
 			String respString = JsonSerializerHelper
-					.Serialize(new ResponseModel<String>(ErrorCode.secretKey_not_config, ""));
+					.Serialize(new ResponseModel<String>(ErrorCode.ssoSecret_not_config, ""));
 			response.getWriter().println(respString);
 			return false;
 		}
 		if (StringExtention.IsNullOrEmpty(jwtManager.ssoCookieKey)) {
 			String respString = JsonSerializerHelper
-					.Serialize(new ResponseModel<String>(ErrorCode.cookieKey_not_config, ""));
+					.Serialize(new ResponseModel<String>(ErrorCode.ssoCookieKey_not_config, ""));
 			response.getWriter().println(respString);
 			return false;
 		}
@@ -127,11 +126,10 @@ public class LogInterceptor implements HandlerInterceptor {
 		logModel.Time = time;
 		logModel.Exception = exception;
 		try {
-			new WebClientRequestHelper().Post(StringExtention.Trim(jwtManager.messageUrl, "/") + "/log/insert", logModel,
-					null, new ParameterizedTypeReference<ServiceModel<String>>() {
-					}).block();
+			new HttpClientRequestHelper().Post(StringExtention.Trim(jwtManager.messageUrl, "/") + "/log/insert",
+					logModel, null);
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
 		}
 	}
 }

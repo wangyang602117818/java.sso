@@ -7,17 +7,17 @@ import java.lang.annotation.Target;
 
 
 /**
- * 定义接口的权限名称 验证失败是否跳转
+ *  SSO Login
 **/
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SSOAuthorize {
 	/**
-	 *   权限名称
+	 *   permission name
 	 */
 	String name() default "";
 	/**
-	 *   验证失败是否需要跳转到登录界面
+	 *  If Redirected when Verify fail
 	 */
 	boolean unAuthorizedRedirect() default true;
 }

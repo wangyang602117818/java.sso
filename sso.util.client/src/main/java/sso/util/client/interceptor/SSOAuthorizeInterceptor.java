@@ -4,12 +4,10 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 
-import javax.net.ssl.SSLException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -17,7 +15,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import sso.util.client.ApplicationProperties;
 import sso.util.client.Base64SecureURL;
-import sso.util.client.WebClientRequestHelper;
+import sso.util.client.HttpClientRequestHelper;
 import sso.util.client.JsonSerializerHelper;
 import sso.util.client.JwtManager;
 import sso.util.client.StringExtention;
@@ -42,22 +40,21 @@ public class SSOAuthorizeInterceptor implements HandlerInterceptor {
 		if (!(handler instanceof HandlerMethod))
 			return true;
 		HandlerMethod handlerMethod = (HandlerMethod) handler;
-		var controllerAnnotation = handlerMethod.getBeanType().getAnnotation(AllowAnonymous.class);
-		var methodAnnotation = handlerMethod.getMethod().getAnnotation(AllowAnonymous.class);
-		var authNameAnnotation = handlerMethod.getMethod().getAnnotation(SSOAuthorize.class);
+		AllowAnonymous controllerAnnotation = handlerMethod.getBeanType().getAnnotation(AllowAnonymous.class);
+		AllowAnonymous methodAnnotation = handlerMethod.getMethod().getAnnotation(AllowAnonymous.class);
+		SSOAuthorize authNameAnnotation = handlerMethod.getMethod().getAnnotation(SSOAuthorize.class);
 		if (controllerAnnotation != null || methodAnnotation != null)
 			return true;
 		if (authNameAnnotation != null) {
 			permissionName = authNameAnnotation.name();
 			unAuthorizedRedirect = authNameAnnotation.unAuthorizedRedirect();
 		}
-		// ��֤�����ļ�
 		if (!VerifyConfig(response))
 			return false;
-		var ssourl = request.getParameter("ssourls");
-		var absoluteUrl = ApplicationProperties.GetAbsoluteUri(request);
+		String ssourl = request.getParameter("ssourls");
+		String absoluteUrl = ApplicationProperties.GetAbsoluteUri(request);
 		if (!StringExtention.IsNullOrEmpty(ssourl)) {
-			var returnUrl = request.getParameter("returnUrl");
+			String returnUrl = request.getParameter("returnUrl");
 			ArrayList<String> ssoUrls = JsonSerializerHelper.Deserialize(
 					new String(Base64.getDecoder().decode(Base64SecureURL.Decode(ssourl))),
 					new TypeReference<ArrayList<String>>() {
@@ -74,7 +71,7 @@ public class SSOAuthorizeInterceptor implements HandlerInterceptor {
 				String newSsoUrls = JsonSerializerHelper.Serialize(ssoUrls);
 				response.sendRedirect(ssoUrls.get(0) + "?ssourls=" + StringExtention.StrToBase64(newSsoUrls)
 						+ "&returnUrl=" + returnUrl);
-			} else // ���һ��
+			} else
 			{
 				response.sendRedirect(
 						StringExtention.Trim(jwtManager.ssoBaseUrl, "/") + "/sso/login?returnUrl=" + returnUrl);
@@ -95,7 +92,7 @@ public class SSOAuthorizeInterceptor implements HandlerInterceptor {
 					SetCookies(response, authorization);
 				} else {
 					if (absoluteUrl.contains("ticket")) {
-						var index = absoluteUrl.indexOf("ticket");
+						int index = absoluteUrl.indexOf("ticket");
 						absoluteUrl = absoluteUrl.substring(0, index - 1);
 					}
 					return SendResult(response, absoluteUrl);
@@ -104,7 +101,7 @@ public class SSOAuthorizeInterceptor implements HandlerInterceptor {
 		}
 		try {
 			if (!CheckPermission(permissionName, authorization)) {
-				var result = JsonSerializerHelper.Serialize(new ResponseModel<String>(ErrorCode.error_permission, ""));
+				String result = JsonSerializerHelper.Serialize(new ResponseModel<String>(ErrorCode.error_permission, ""));
 				response.getWriter().println(result);
 				return false;
 			}
@@ -139,31 +136,33 @@ public class SSOAuthorizeInterceptor implements HandlerInterceptor {
 			String url = StringExtention.Trim(jwtManager.ssoBaseUrl, "/") + "/sso/login?returnUrl=" + returnUrl;
 			response.sendRedirect(url);
 		} else {
-			var result = JsonSerializerHelper.Serialize(new ResponseModel<String>(ErrorCode.authorize_fault, ""));
+			String result = JsonSerializerHelper.Serialize(new ResponseModel<String>(ErrorCode.authorize_fault, ""));
 			response.getWriter().println(result);
 		}
 		return false;
 	}
 
-	private boolean CheckPermission(String permission, String authorization) throws SSLException {
+	private boolean CheckPermission(String permission, String authorization) throws Exception {
 		if (StringExtention.IsNullOrEmpty(permission))
 			return true;
-		var url = StringExtention.Trim(jwtManager.ssoBaseUrl, "/") + "/permission/checkPermission?permissionName="
+		String url = StringExtention.Trim(jwtManager.ssoBaseUrl, "/") + "/permission/checkPermission?permissionName="
 				+ permission;
 		HashMap<String, String> header = new HashMap<String, String>();
 		header.put("Authorization", authorization);
-		var result = new WebClientRequestHelper().Get(url, header, new ParameterizedTypeReference<ServiceModel<String>>() {
-		}).block();
+		String resp = new HttpClientRequestHelper().Get(url, header);
+		ServiceModel<String> result = JsonSerializerHelper.Deserialize(resp, new TypeReference<ServiceModel<String>>() {
+		});
 		if (result.code == 0)
 			return true;
 		return false;
 	}
 
-	private String GetTokenByTicket(String ticket, String from, String audience) throws SSLException {
-		var url = StringExtention.Trim(jwtManager.ssoBaseUrl, "/") + "/sso/gettoken?ticket=" + ticket + "&from=" + from
+	private String GetTokenByTicket(String ticket, String from, String audience) throws Exception {
+		String url = StringExtention.Trim(jwtManager.ssoBaseUrl, "/") + "/sso/gettoken?ticket=" + ticket + "&from=" + from
 				+ "&audience=" + audience;
-		var result = new WebClientRequestHelper().Get(url, null, new ParameterizedTypeReference<ServiceModel<String>>() {
-		}).block();
+		String resp = new HttpClientRequestHelper().Get(url, null);
+		ServiceModel<String> result = JsonSerializerHelper.Deserialize(resp, new TypeReference<ServiceModel<String>>() {
+		});
 		if (result.code == 0)
 			return result.result.toString();
 		return "";
@@ -173,25 +172,25 @@ public class SSOAuthorizeInterceptor implements HandlerInterceptor {
 		response.setContentType("application/json");
 		if (StringExtention.IsNullOrEmpty(jwtManager.ssoBaseUrl) && unAuthorizedRedirect) {
 			String respString = JsonSerializerHelper
-					.Serialize(new ResponseModel<String>(ErrorCode.baseUrl_not_config, ""));
+					.Serialize(new ResponseModel<String>(ErrorCode.ssoUrl_not_config, ""));
 			response.getWriter().println(respString);
 			return false;
 		}
 		if (StringExtention.IsNullOrEmpty(jwtManager.ssoSecretKey)) {
 			String respString = JsonSerializerHelper
-					.Serialize(new ResponseModel<String>(ErrorCode.secretKey_not_config, ""));
+					.Serialize(new ResponseModel<String>(ErrorCode.ssoSecret_not_config, ""));
 			response.getWriter().println(respString);
 			return false;
 		}
 		if (StringExtention.IsNullOrEmpty(jwtManager.ssoCookieKey)) {
 			String respString = JsonSerializerHelper
-					.Serialize(new ResponseModel<String>(ErrorCode.cookieKey_not_config, ""));
+					.Serialize(new ResponseModel<String>(ErrorCode.ssoCookieKey_not_config, ""));
 			response.getWriter().println(respString);
 			return false;
 		}
 		if (StringExtention.IsNullOrEmpty(jwtManager.ssoCookieTime)) {
 			String respString = JsonSerializerHelper
-					.Serialize(new ResponseModel<String>(ErrorCode.cookieTime_not_config, ""));
+					.Serialize(new ResponseModel<String>(ErrorCode.ssoCookieTime_not_config, ""));
 			response.getWriter().println(respString);
 			return false;
 		}

@@ -17,6 +17,13 @@ public class ResponseModel<T> {
 		this.count = count;
 	}
 
+	public ResponseModel(int code, String message, T result, long count) {
+		this.code = code;
+		this.message = message;
+		this.result = result;
+		this.count = count;
+	}
+
 	public int getCode() {
 		return code;
 	}

@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 定义接口不记录日志
+ Not Need Log Record
 **/
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

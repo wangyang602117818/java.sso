@@ -127,7 +127,7 @@ public class HttpClientRequestHelper {
 		}
 		DownloadFileItem downloadFileItem = new DownloadFileItem();
 		conn.getHeaderFields();
-		var contentDisposition = conn.getHeaderField("Content-Disposition");
+		String contentDisposition = conn.getHeaderField("Content-Disposition");
 		String name = "";
 		if (contentDisposition != null) {
 			String[] names = contentDisposition.split(";");

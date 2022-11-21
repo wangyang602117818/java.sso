@@ -43,7 +43,7 @@ public class FileClientService {
 		uploadFileItem.ContentType = contentType;
 		uploadFileItem.FileStream = stream;
 		files.add(uploadFileItem);
-		var result = this.Uploads(files, roles, users);
+		ServiceModel<List<FileResponse>> result = this.Uploads(files, roles, users);
 		ServiceModel<FileResponse> responServiceModel = new ServiceModel<FileResponse>();
 		responServiceModel.code = result.code;
 		responServiceModel.message = result.message;
@@ -92,7 +92,7 @@ public class FileClientService {
 	public ServiceModel<List<FileItem>> GetFileList(int pageIndex, int pageSize, String from, String filter,
 			FileType fileType, LocalDateTime startTime, LocalDateTime endTime, HashMap<String, String> sorts,
 			Boolean delete) throws Exception {
-		var url = RemoteUrl + "/data/GetFiles?pageIndex=" + pageIndex + "&pageSize=" + pageSize;
+		String url = RemoteUrl + "/data/GetFiles?pageIndex=" + pageIndex + "&pageSize=" + pageSize;
 		if (!StringExtention.IsNullOrEmpty(from))
 			url += "&from=" + from;
 		if (!StringExtention.IsNullOrEmpty(filter))
@@ -103,7 +103,7 @@ public class FileClientService {
 			url += "&startTime=" + startTime.format(ApplicationProperties.dateTimeFormatter);
 		if (endTime != null)
 			url += "&endTime=" + endTime.format(ApplicationProperties.dateTimeFormatter);
-		var index = 0;
+		int index = 0;
 		if (sorts != null) {
 			for (String key : sorts.keySet()) {
 				url += "&sorts[" + index + "].key=" + key;
@@ -118,14 +118,14 @@ public class FileClientService {
 	}
 
 	public ServiceModel<FileItem> GetFileInfo(String id) throws Exception {
-		var url = RemoteUrl + "/data/GetFileInfo/" + id;
+		String url = RemoteUrl + "/data/GetFileInfo/" + id;
 		String item = requestHelper.Get(url, headers);
 		return JsonSerializerHelper.Deserialize(item, new TypeReference<ServiceModel<FileItem>>() {
 		});
 	}
 
 	public ServiceModel<List<FileItem>> GetFileInfos(List<String> ids) throws Exception {
-		var url = RemoteUrl + "/data/GetFileInfos";
+		String url = RemoteUrl + "/data/GetFileInfos";
 		ModelIds model = new ModelIds();
 		model.ids = ids;
 		String result = requestHelper.Post(url, model, headers);
@@ -134,28 +134,28 @@ public class FileClientService {
 	}
 
 	public ServiceModel<List<FromData>> GetFromList() throws Exception {
-		var url = RemoteUrl + "/data/GetFromList";
+		String url = RemoteUrl + "/data/GetFromList";
 		String list = requestHelper.Get(url, headers);
 		return JsonSerializerHelper.Deserialize(list, new TypeReference<ServiceModel<List<FromData>>>() {
 		});
 	}
 
 	public ServiceModel<List<ExtensionMap>> GetExtensionMap() throws Exception {
-		var url = RemoteUrl + "/data/GetExtensionsMap";
+		String url = RemoteUrl + "/data/GetExtensionsMap";
 		String list = requestHelper.Get(url, headers);
 		return JsonSerializerHelper.Deserialize(list, new TypeReference<ServiceModel<List<ExtensionMap>>>() {
 		});
 	}
 
 	public ServiceModel<String> RemoveFile(String fileId) throws Exception {
-		var url = RemoteUrl + "/data/Remove/" + fileId;
+		String url = RemoteUrl + "/data/Remove/" + fileId;
 		String result = requestHelper.Get(url, headers);
 		return JsonSerializerHelper.Deserialize(result, new TypeReference<ServiceModel<String>>() {
 		});
 	}
 
 	public ServiceModel<String> RemoveFiles(List<String> fileIds) throws Exception {
-		var url = RemoteUrl + "/data/Removes";
+		String url = RemoteUrl + "/data/Removes";
 		ModelIds model = new ModelIds();
 		model.ids = fileIds;
 		String result = requestHelper.Post(url, model, headers);
@@ -164,14 +164,14 @@ public class FileClientService {
 	}
 
 	public ServiceModel<String> RestoreFile(String fileId) throws Exception {
-		var url = RemoteUrl + "/data/Restore/" + fileId;
+		String url = RemoteUrl + "/data/Restore/" + fileId;
 		String result = requestHelper.Get(url, headers);
 		return JsonSerializerHelper.Deserialize(result, new TypeReference<ServiceModel<String>>() {
 		});
 	}
 
 	public ServiceModel<String> RestoreFiles(List<String> fileIds) throws Exception {
-		var url = RemoteUrl + "/data/Restores";
+		String url = RemoteUrl + "/data/Restores";
 		ModelIds model = new ModelIds();
 		model.ids = fileIds;
 		String result = requestHelper.Post(url, model, headers);

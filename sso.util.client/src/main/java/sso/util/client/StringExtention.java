@@ -3,6 +3,7 @@ package sso.util.client;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,8 +15,8 @@ public class StringExtention {
 	public static String Trim(String str, String c) {
 		if (IsNullOrEmpty(c))
 			c = " ";
-		var chars = new String[] { "[", "]", "\\", "^", "$", ".", "|", "?", "*", "+", "(", ")", "{", "}" };
-		var transfer = "";
+		String[] chars = new String[] { "[", "]", "\\", "^", "$", ".", "|", "?", "*", "+", "(", ")", "{", "}" };
+		String transfer = "";
 		if (Arrays.asList(chars).contains(c))
 			transfer = "\\";
 		String regexString = "^" + (transfer + c) + "+|" + (transfer + c) + "+$";
@@ -34,13 +35,37 @@ public class StringExtention {
 	}
 
 	public static String GetFileName(String str) {
-		var index = str.lastIndexOf("\\");
+		int index = str.lastIndexOf("\\");
 		return str.substring(index + 1);
 	}
-	
+
 	public static String GetFileExt(String str) {
-		var index = str.lastIndexOf('.');
-        if (index == -1) return "";
-        return str.substring(index);
+		int index = str.lastIndexOf('.');
+		if (index == -1)
+			return "";
+		return str.substring(index);
+	}
+
+	public static int NumberInRange(int min, int max) {
+		return new Random().nextInt((max - min) + 1) + min;
+	}
+
+	public static String RandomCode(int numb) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < numb; i++) {
+			int res = NumberInRange(0, 2);
+			switch (res) {
+			case 0:
+				sb.append(NumberInRange(0, 9)); // 鏁板瓧
+				break;
+			case 1:
+				sb.append((char) NumberInRange(97, 122)); // 灏忓啓瀛楁瘝
+				break;
+			case 2:
+				sb.append((char) NumberInRange(65, 90)); // 澶у啓瀛楁瘝
+				break;
+			}
+		}
+		return sb.toString();
 	}
 }

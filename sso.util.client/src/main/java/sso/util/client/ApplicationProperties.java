@@ -23,25 +23,19 @@ public class ApplicationProperties {
 	}
 
 	/**
-	 * tips: 获取应用程序的根目录 1: 如果在开发环境可能返回 C:\JavaWorkspace\springwebmvc02 2:
-	 * 如果是在tomcat可能返回 C:\soft\apache-tomcat-9.0.65\bin
+	 * tips:dev:  C:\JavaWorkspace\springwebmvc02 2:
+	 * tomcat: C:\soft\apache-tomcat-9.0.65\bin
 	 */
 	public static String GetAppBasePath() {
 		return System.getProperty("user.dir");
 	}
 
-	/**
-	 * tips: 获取应用程序的基本路径
-	 */
 	public static String GetApplicationUrl(HttpServletRequest request) {
 		int port = request.getServerPort();
-		var portstr = port == 80 ? "" : (":" + port);
+		String portstr = port == 80 ? "" : (":" + port);
 		return request.getScheme() + "://" + request.getServerName() + portstr + request.getContextPath();
 	}
 
-	/**
-	 * tips: 获取应用程序的完全路径
-	 */
 	public static String GetAbsoluteUri(HttpServletRequest request) {
 		if (request.getQueryString() == null)
 			return GetApplicationUrl(request) + request.getServletPath();
